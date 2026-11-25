@@ -1,3 +1,4 @@
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,7 +19,8 @@ public class GestionRecetas {
             System.out.println("3.Añadir nueva receta");
             System.out.println("4.Modificar el tiempo de preparación y el número de raciones de una receta");
             System.out.println("5.Eliminar una receta del catálogo");
-            System.out.println("6.Salir");
+            System.out.println("6.Buscar receta por nombre");
+            System.out.println("7.Salir");
             System.out.print("Elige una opción: ");
             try {
                 opcion = Integer.parseInt(scanner.nextLine().trim());
@@ -59,6 +61,11 @@ public class GestionRecetas {
                         eliminarReceta(idEliminar);
                         break;
                     case 6:
+                        System.out.print("Introduce el nombre de la receta a buscar: ");
+                        String nombreBuscar = scanner.nextLine().trim();
+                        buscarRecetaPorNombre(nombreBuscar);
+                        break;
+                    case 7:
                         System.out.println("Saliendo de la aplicación");
                         break;
                     default:
@@ -69,7 +76,7 @@ public class GestionRecetas {
             } catch (Exception e) {
                 System.out.println("Error durante la ejecución: " + e.getMessage());
             }
-        } while (opcion != 6);
+        } while (opcion != 7);
         scanner.close();
     }
     private static List<Receta> obtenerListaRecetas() {
@@ -176,6 +183,33 @@ public class GestionRecetas {
             }
         } catch (SQLException e) {
             System.out.println("Error al eliminar la receta: " + e.getMessage());
+        }
+    }
+    private static void buscarRecetaPorNombre(String nombre) {
+        String sql = "{CALL buscarReceta(?)}";
+        try (Connection conn = ConexionBD.getConnection();
+             CallableStatement cstmt = conn.prepareCall(sql)) {
+            cstmt.setString(1, nombre);
+            try (ResultSet rs = cstmt.executeQuery()) {
+                boolean encontrada = false;
+                while (rs.next()) {
+                    encontrada = true;
+                    Receta r = new Receta(
+                            rs.getInt("id"),
+                            rs.getString("nombre"),
+                            rs.getString("categoria"),
+                            rs.getInt("tiempo_preparacion"),
+                            rs.getString("dificultad"),
+                            rs.getInt("raciones")
+                    );
+                    System.out.println("Receta encontrada: " + r);
+                }
+                if (!encontrada) {
+                    System.out.println("No se encontró ninguna receta con el nombre " + nombre);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al buscar la receta por nombre: " + e.getMessage());
         }
     }
 }
